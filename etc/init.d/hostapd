@@ -32,7 +32,9 @@ DAEMON_OPTS="-B -P $PIDFILE $DAEMON_OPTS $DAEMON_CONF"
 case "$1" in
   start)
 	log_daemon_msg "Starting $DESC" "$NAME"
-	start-stop-daemon --start --oknodo --quiet --exec "$DAEMON_SBIN" \
+	# try to start the RealTek binary first and the original one if that fails
+	start-stop-daemon --start --oknodo --quiet --exec "{$DAEMON_SBIN}.rtl" \
+		--pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null || 	start-stop-daemon --start --oknodo --quiet --exec "${DAEMON_SBIN}" \
 		--pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null
 	log_end_msg "$?"
 	;;

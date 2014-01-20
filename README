@@ -1,0 +1,83 @@
+This is the Raspberry Pi Timelapse Camera Server (picam)
+
+This README details the composition of the basic components and the steps necessary to 
+install it on top of a previously configured raspberry pi.
+
+Basic Structure:
+camServer.py runs at all times and takes picture between start and end times every interval period.
+
+startserver.sh is run every minute by cron to check whether the camServer failed and restarts it if
+necessary.
+It also runs the ftpsync script and checks for config reloads
+
+webConfig.py is called from the lighttpd if the user opens the browser configuration. It parses
+and saves config data, changes WPA settings and issues photo and FTP testing.
+
+These three parts are running asynchronously. startserver.sh ties it all together.
+
+
+Installing prerequisits:
+apt-get install hostapd dnsmasq python-opencv lighttpd
+
+Configure wpa in
+/etc/wpa_supplicant/wpa_supplicant.conf
+
+Deactivate Servers
+update-rc.d hostapd remove
+update-rc.d dnsmasq remove
+
+Get picam:
+wget "https://github.com/ashtons/picam/archive/master.zip"
+unzip master.zip
+cd picam-master
+python setup.py install
+
+Allow the webconfig script to restart the network fallback:
+insert into /etc/sudoers
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback start
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback stop
+www-data ALL=(ALL) NOPASSWD: /usr/bin/killall -SIGUSR1 dd
+www-data ALL=(ALL) NOPASSWD: /usr/bin/stdbuf -o 0 /var/www/cgi-bin/clonesd.sh
+
+Allow for address redirection in case of a WIFI connect failure:
+insert into /etc/dnsmasq.conf
+address=/#/192.168.5.1
+domain=picam
+dhcp-range=192.168.5.50,192.168.5.150,12h
+
+Copy hostapd.conf into /etc/hostapd and insert into /etc/default/hostapd
+DAEMON_CONF="/etc/hostapd/hostapd.conf"
+Change /etc/hostname and /etc/hostapd/hostapd.conf ssid to something unique
+
+If you have a wifi dongle that doesn't work out of the box do:
+lsusb
+and locate the line that lists the dongle. Copy this line along with "hostapd" 
+into google and hope for the best...
+
+Create directories:
+mkdir /home/pi/.picam
+chown pi.pi /home/pi/.picam
+mkdir /var/log/picam
+chown pi.pi /var/log/picam
+mkdir /var/lib/picam
+mkdir /var/lib/picam/images
+chown pi.picam /var/lib/picam
+chown pi.picam /var/lib/picam/images
+chmod g+w /var/lib/picam/images
+
+
+Edit pi crontab:
+crontab -e -u pi
+* * * * * /var/www/cgi-bin/startserver.sh >>/var/log/picam/startserver.txt 2>&1
+
+Getting rtl8188CUS hostapd:
+wget -O /usr/sbin/hostapd.rtl "http://dl.dropbox.com/u/1663660/hostapd/hostapd"
+chmod 755 /usr/sbin/hostapd.rtl
+
+Change /etc/init.d/hostapd to try both binaries:
+start-stop-daemon --start --oknodo --quiet --exec "${DAEMON_SBIN}.rtl" \
+                --pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null ||      start-stop-daemon --start --oknodo --quiet --exec "${DAEMON_SBIN}" \
+                --pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null
+
+Activate networkfallback
+update-rc.d networkfallback start 2 3 4 5

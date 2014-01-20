@@ -1,0 +1,48 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          networkfallback
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:
+# X-Start-Before:    rmnologin
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: Provide wifi fallback to hostapd
+# Description: Provide wifi fallback to hostapd
+### END INIT INFO
+
+#set -e
+
+case "$1" in
+  start)
+	echo "Starting WPA Supplicant"
+	wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf #>/dev/null 2>&1
+	echo "Optaining DHCP IP"
+	if dhclient -1 wlan0 ; then
+		echo "Connected to WIFI"
+		connected=true
+	else
+		echo "DCHP aqcuire (and supposedly WIFI connect) failed. Starting hostapd"
+		wpa_cli terminate
+		iptables -t nat -F PREROUTING
+		iptables -t nat -I PREROUTING -p udp --dport 53 -j DNAT --to 192.168.5.1
+		iptables -t nat -I PREROUTING -p tcp --dport 80 -j DNAT --to 192.168.5.1
+		service hostapd start
+		service dnsmasq start
+		ifconfig wlan0 192.168.5.1 netmask 255.255.255.0 up
+	fi
+	;;
+  stop|reload|restart|force-reload|status)
+	echo "Shutting down wifi and hostapd fallback"
+	iptables -t nat -F PREROUTING
+	wpa_cli terminate
+	service hostapd stop
+	service dnsmasq stop
+	;;
+  *)
+	echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+	exit 1
+	;;
+esac
+
+exit 0

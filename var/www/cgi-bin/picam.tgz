@@ -1,0 +1,5 @@
+#!/bin/bash
+echo -e "Content-type: application/x-compressed\n"
+
+tar -cz /var/www/* /etc/hostapd/hostapd.conf /etc/init.d/networkfallback /etc/sudoers /etc/dnsmasq.conf /usr/sbin/hostapd /etc/network/interfaces
+

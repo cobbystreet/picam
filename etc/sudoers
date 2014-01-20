@@ -26,3 +26,7 @@ root	ALL=(ALL:ALL) ALL
 
 #includedir /etc/sudoers.d
 pi ALL=(ALL) NOPASSWD: ALL
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback start
+www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback stop
+www-data ALL=(ALL) NOPASSWD: /usr/bin/killall -SIGUSR1 dd
+www-data ALL=(ALL) NOPASSWD: /usr/bin/stdbuf -o 0 /var/www/cgi-bin/clonesd.sh
