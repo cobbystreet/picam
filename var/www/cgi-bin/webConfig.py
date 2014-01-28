@@ -82,9 +82,12 @@ print '<HR><B>SDCard Cloning Settings:</B><BR>Set these and then start the clone
 for k in ['CloneHost','CloneDev']:
   writeConf(k)
 print '<br>Last Clone stat:<br><pre>'
-clonelog=open("/var/log/picam/clonesd.txt","r")
-print clonelog.read()[-300:]
-clonelog.close()
+try:
+  clonelog=open("/var/log/picam/clonesd.txt","r")
+  print clonelog.read()[-300:]
+  clonelog.close()
+except IOError:
+  print "Can't read clonesd.txt. Empty or Permissions problem?"
 print '</pre>'
 print '<br><input type="submit" name="settings" value="Commit Changes"/>Changes will be saved immediately, and transfered to Camera Server on next WatchDog check (once a minute)</br>'
 print '</form><br>'
@@ -98,8 +101,12 @@ print '</form><br>'
 #WPA supplicant form.
 print '<form method="get" action="/cgi-bin/webConfig.py">'
 print '<textarea name="wpaconf" rows="10" cols="50">'
-wpaconf=open("/etc/wpa_supplicant/wpa_supplicant.conf","r")
-print wpaconf.read()
+try:
+  wpaconf=open("/etc/wpa_supplicant/wpa_supplicant.conf","r")
+  print wpaconf.read()
+  wpaconf.close()
+except:
+  print "Can't read /etc/wpa_supplicant/wpa_supplicant.conf. Permissions problem?"
 print '</textarea>'
 print '<input type="submit" name="wpa" value="Change WPA Settings"/>'
 print '</form><br>'
@@ -127,12 +134,11 @@ if ('ftptest' in form) and (form['ftptest'].value=='Test'):
 
 if ('settings' in form) and (form['settings'].value=='Commit Changes'):
   #Save the config.
-  config.save()
-
-  #Opening the reload file allows the cronjob WatchDog to issue a config reload in the camServer
-  reloadFile=open(config.campath+'reload','w')
-  print >>reloadFile,"1"
-  reloadFile.close()
-  print "<BR>Settings saved and camServer reload initiated."
+  if config.save():
+    #Opening the reload file allows the cronjob WatchDog to issue a config reload in the camServer
+    reloadFile=open(config.campath+'reload','w')
+    print >>reloadFile,"1"
+    reloadFile.close()
+    print "<BR>Settings saved and camServer reload initiated."
 print "</body></html>"
 

@@ -21,6 +21,9 @@ HERE
 if [[ "${FTPPassive}" == "0" ]] ; then
   PASSIVEMODE="set ftp:passive-mode no"
 fi
+if [[ "${FTPUseCache}" == "1" ]] ; then
+  USECACHE=" --use-cache "
+fi
 #Connect to server and mirror
 lftp -q -c "set ftp:list-options -a;${PASSIVEMODE}
 open '$FTPURL';
@@ -29,7 +32,7 @@ mkdir -p $FTPPath;
 cd $FTPPath;
 set -a
 mirror --reverse \
-       --Remove-source-files \
+       --Remove-source-files ${USECACHE}\
        --verbose=2"
 # \
 #       --exclude-glob a-dir-to-exclude/ \

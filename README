@@ -16,68 +16,102 @@ and saves config data, changes WPA settings and issues photo and FTP testing.
 These three parts are running asynchronously. startserver.sh ties it all together.
 
 
-Installing prerequisits:
-apt-get install hostapd dnsmasq python-opencv lighttpd
+#extract raspbian image to device. BEWARE: CORRECT DEVICE NAME NEEDED HERE
+unzip -p *-wheezy-raspbian.zip |dd of=/dev/sdb bs=1M
 
-Configure wpa in
+#make sure ssh starts at boot
+ln -s /etc/init.d/ssh /etc/rc2.d/S04ssh
+
+#configure WPA settings in /etc/wpa_supplicant/wpa_supplicant.conf
+network={
+        ssid="SSID"
+        psk="PASSWORD"
+        key_mgmt=WPA-PSK
+}
+
+#boot up the PI and figure out it's IP address. ssh into it with
+ssh pi@IPADDRESS
+
+#become root
+sudo su
+
+#finish PI config
+raspi-config
+Expand Filesystem
+Localization -> TimeZone
+Localization -> Change Locale
+Enable Camera
+#exit and allow to reboot. Relogin
+
+#Installing prerequisits:
+apt-get update
+apt-get upgrade
+apt-get install hostapd dnsmasq python-opencv python-imaging lighttpd lftp
+
+#Configure wpa in
 /etc/wpa_supplicant/wpa_supplicant.conf
 
-Deactivate Servers
+#Deactivate Servers
 update-rc.d hostapd remove
 update-rc.d dnsmasq remove
 
-Get picam:
+#Get picam:
 wget "https://github.com/ashtons/picam/archive/master.zip"
 unzip master.zip
 cd picam-master
 python setup.py install
 
-Allow the webconfig script to restart the network fallback:
+#Allow the webconfig script to restart the network fallback:
 insert into /etc/sudoers
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback start
 www-data ALL=(ALL) NOPASSWD: /usr/sbin/service networkfallback stop
 www-data ALL=(ALL) NOPASSWD: /usr/bin/killall -SIGUSR1 dd
 www-data ALL=(ALL) NOPASSWD: /usr/bin/stdbuf -o 0 /var/www/cgi-bin/clonesd.sh
 
-Allow for address redirection in case of a WIFI connect failure:
+#Allow for address redirection in case of a WIFI connect failure:
 insert into /etc/dnsmasq.conf
 address=/#/192.168.5.1
 domain=picam
 dhcp-range=192.168.5.50,192.168.5.150,12h
 
-Copy hostapd.conf into /etc/hostapd and insert into /etc/default/hostapd
+#Copy hostapd.conf into /etc/hostapd and insert into /etc/default/hostapd
 DAEMON_CONF="/etc/hostapd/hostapd.conf"
 Change /etc/hostname and /etc/hostapd/hostapd.conf ssid to something unique
 
-If you have a wifi dongle that doesn't work out of the box do:
+#If you have a wifi dongle that doesn't work out of the box do:
 lsusb
-and locate the line that lists the dongle. Copy this line along with "hostapd" 
-into google and hope for the best...
+#and locate the line that lists the dongle. Copy this line along with "hostapd" 
+#into google and hope for the best...
 
-Create directories:
+#Allow www-data to take pictures
+addgroup www-data video
+
+#Create directories:
 mkdir /home/pi/.picam
-chown pi.pi /home/pi/.picam
+chown pi.video /home/pi/.picam
 mkdir /var/log/picam
-chown pi.pi /var/log/picam
+chown pi.video /var/log/picam
 mkdir /var/lib/picam
 mkdir /var/lib/picam/images
-chown pi.picam /var/lib/picam
-chown pi.picam /var/lib/picam/images
-chmod g+w /var/lib/picam/images
+chown -R pi.video /var/lib/picam
+chmod -R g+w /var/lib/picam/
 
+chown -R www-data.video /var/www/
+chmod g+w /var/www
 
-Edit pi crontab:
+#Edit pi crontab:
 crontab -e -u pi
 * * * * * /var/www/cgi-bin/startserver.sh >>/var/log/picam/startserver.txt 2>&1
 
-Getting rtl8188CUS hostapd:
+#Getting rtl8188CUS hostapd:
 wget -O /usr/sbin/hostapd.rtl "http://dl.dropbox.com/u/1663660/hostapd/hostapd"
 chmod 755 /usr/sbin/hostapd.rtl
 
-Change /etc/init.d/hostapd to try both binaries:
+#Change /etc/init.d/hostapd to try both binaries:
 start-stop-daemon --start --oknodo --quiet --exec "${DAEMON_SBIN}.rtl" \
                 --pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null ||      start-stop-daemon --start --oknodo --quiet --exec "${DAEMON_SBIN}" \
                 --pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null
 
-Activate networkfallback
+#Activate networkfallback
 update-rc.d networkfallback start 2 3 4 5
+

@@ -30,6 +30,7 @@ values={'interval':['10','Photo interval in seconds (integer)',lambda x:int(x),l
 'FTPUser':['picam','FTP Username',lambda x:x,lambda x:x],
 'FTPPass':['thisispicam','FTP Password',lambda x:x,lambda x:x],
 'FTPPassive':['0','Passive FTP mode (0 to disable, 1 to enable)',lambda x:x,lambda x:x],
+'FTPUseCache':['0','Use FTP Directory Cache. May speed up the process considerably if many files are present in the upload dir. (0 to list, 1 to use cache)',lambda x:x,lambda x:x],
 #'FTPOpts':['','FTP extra Options',lambda x:x,lambda x:x],
 'FTPPath':['/home/picam/picam001','FTP Server Directory (example: "/data/upload", leading "/" indicates absolute directory on FTP server)',lambda x:x,lambda x:x],
 'CloneDev':['/dev/sda','Device of SDCard reader to clone to (example "/dev/sda"). Use extreme caution when other storage devices are connected!!!',lambda x:x,lambda x:x],
@@ -67,7 +68,12 @@ def load():
 def save():
   for k in values.keys():
     saveVal(k,values[k][3](values[k][0]))
-  xml.write(FN)
+  try:
+    xml.write(FN)
+  except IOError:
+    print "<h2>Can not write config.xml. Permission problem? Changes lost!</h2>"
+    return False
+  return True
 
 if __name__ == "__main__":
   #If config.py is run directly, return all the saved values as "name=value" pairs.
