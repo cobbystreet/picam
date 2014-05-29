@@ -11,6 +11,7 @@ DATE=`date`
 
 #Check whether there is a previous ftpsync still running. Start or log otherwise.
 if ! (ps xaf | grep "[/]ftpsync.sh" >/dev/null) ; then
+  echo "${DATE} FTP Sync job starting" >>${FTPLOG}
   /var/www/cgi-bin/ftpsync.sh >>${FTPLOG} 2>&1
 else
   echo "${DATE} FTP Sync job still running."
@@ -26,7 +27,8 @@ if [ -e "${PIDFILE}" ] && (ps xaf | grep "[ ]$(cat ${PIDFILE})[ ]" >/dev/null); 
     kill -SIGUSR1 $(cat ${PIDFILE})
     touch "${PIDFILE}"
   fi
-  exit 99
+  # A running camServer.py is the normal state. So exit normally
+  exit 0
 fi
 
 #Save previous log file
@@ -41,3 +43,5 @@ echo $! > "${PIDFILE}"
 chmod 644 "${PIDFILE}"
 
 
+# Exit with notification
+exit 1

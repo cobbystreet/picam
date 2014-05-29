@@ -76,7 +76,7 @@ print "<HR><B>Time Lapse Settings:</B><BR>If Interval is less than 60 seconds, t
 for k in ['interval','starttime','endtime','FNpattern']:
   writeConf(k)
 print "<HR><B>FTP Settings:</B><BR>FTP uploads happen asynchronously from photography once per minute."
-for k in ['FTPHost','FTPUser','FTPPass','FTPPath','FTPPassive']:
+for k in ['FTPHost','FTPUser','FTPPass','FTPPath','FTPPassive','FTPUseCache']:
   writeConf(k)
 print '<HR><B>SDCard Cloning Settings:</B><BR>Set these and then start the clonescript "doclone.sh"'
 for k in ['CloneHost','CloneDev']:

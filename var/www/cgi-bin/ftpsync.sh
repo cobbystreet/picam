@@ -25,7 +25,9 @@ if [[ "${FTPUseCache}" == "1" ]] ; then
   USECACHE=" --use-cache "
 fi
 #Connect to server and mirror
-lftp -q -c "set ftp:list-options -a;${PASSIVEMODE}
+lftp -q -c "set net:max-retries 1;
+set ftp:list-options -a;
+${PASSIVEMODE}
 open '$FTPURL';
 lcd $LCD;
 mkdir -p $FTPPath;
